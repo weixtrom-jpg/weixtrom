@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "MecaniControl",
+    "slug": "weixtrom",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "scheme": "weixtrom",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "bundleIdentifier": "com.weixtrom.mecanicontrol"
+    },
+    "android": {
+      "package": "com.weixtrom.mecanicontrol",
+      "adaptiveIcon": {
+        "backgroundColor": "#1F3864"
+      }
+    },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}

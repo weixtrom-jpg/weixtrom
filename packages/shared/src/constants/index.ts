@@ -1,0 +1,26 @@
+export const AUTH = {
+  ACCESS_TOKEN_EXPIRY: '15m',
+  REFRESH_TOKEN_EXPIRY: '7d',
+  MAX_LOGIN_ATTEMPTS: 5,
+  LOCKOUT_DURATION_MINUTES: 30,
+  PASSWORD_MIN_LENGTH: 8,
+  VERIFICATION_TOKEN_EXPIRY_HOURS: 24,
+  RESET_TOKEN_EXPIRY_MINUTES: 30,
+} as const;
+
+export const LEGAL_ALERTS = {
+  NOTIFICATION_DAYS: [30, 15, 5] as const,
+} as const;
+
+export const PAGINATION = {
+  DEFAULT_PAGE_SIZE: 20,
+  MAX_PAGE_SIZE: 100,
+} as const;
+
+export const SUPPLIER_QUOTE = {
+  RESPONSE_TIMEOUT_HOURS: 48,
+} as const;
+
+export const DIAGNOSTIC = {
+  REASSIGN_TIMEOUT_HOURS: 24,
+} as const;
