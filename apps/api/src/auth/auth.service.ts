@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notifications/notification.service';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
 import { UserStatus } from '@prisma/client';
 
@@ -19,6 +20,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
+    private notifications: NotificationService,
   ) {}
 
   // WX-016: Registro de usuario
@@ -46,7 +48,7 @@ export class AuthService {
       },
     });
 
-    // TODO: Enviar correo de verificación (WX-024)
+    await this.notifications.sendVerificationEmail(user.email, verificationToken, user.firstName);
 
     return {
       message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
@@ -89,7 +91,7 @@ export class AuthService {
       data: { verificationToken },
     });
 
-    // TODO: Enviar correo (WX-024)
+    await this.notifications.sendVerificationEmail(user.email, verificationToken, user.firstName);
 
     return { message: 'Si el correo existe y no está verificado, se envió un nuevo enlace.' };
   }
@@ -228,7 +230,7 @@ export class AuthService {
       data: { resetToken, resetTokenExpiry },
     });
 
-    // TODO: Enviar correo con enlace (WX-024)
+    await this.notifications.sendPasswordResetEmail(user.email, resetToken, user.firstName);
 
     return { message };
   }
