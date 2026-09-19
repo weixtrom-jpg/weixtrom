@@ -1,0 +1,528 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USUARIOS Y AUTENTICACIÓN
+// ─────────────────────────────────────────────
+
+enum Role {
+  CLIENT
+  WORKSHOP_ADMIN
+  TECHNICIAN
+  SUPPLIER_ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
+model User {
+  id                String     @id @default(cuid())
+  email             String     @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  phone             String?
+  role              Role
+  status            UserStatus @default(PENDING_VERIFICATION)
+  emailVerified     Boolean    @default(false)
+  verificationToken String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  failedAttempts    Int        @default(0)
+  lockedUntil       DateTime?
+  lastLoginAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  // Relaciones
+  vehicles            Vehicle[]
+  diagnosticRequests   DiagnosticRequest[]
+  workshop             Workshop?            @relation("WorkshopAdmin")
+  supplier             Supplier?            @relation("SupplierAdmin")
+  technicianWorkshop   Workshop?            @relation("Technicians", fields: [technicianWorkshopId], references: [id])
+  technicianWorkshopId String?
+  assignedOrders       WorkOrder[]          @relation("AssignedTechnician")
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+  refreshTokens        RefreshToken[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────
+// TALLERES Y PROVEEDORES
+// ─────────────────────────────────────────────
+
+model Workshop {
+  id          String   @id @default(cuid())
+  name        String
+  nit         String?  @unique
+  address     String?
+  phone       String?
+  city        String?
+  isVerified  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  adminId     String   @unique
+  admin       User     @relation("WorkshopAdmin", fields: [adminId], references: [id])
+  technicians User[]   @relation("Technicians")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  diagnosticRequests DiagnosticRequest[] @relation("WorkshopDiagnostics")
+  quotations         Quotation[]
+  workOrders         WorkOrder[]
+  invoices           Invoice[]
+
+  @@map("workshops")
+}
+
+model Supplier {
+  id         String   @id @default(cuid())
+  name       String
+  nit        String?  @unique
+  address    String?
+  phone      String?
+  city       String?
+  isVerified Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  adminId    String   @unique
+  admin      User     @relation("SupplierAdmin", fields: [adminId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  products              Product[]
+  supplierQuoteResponses SupplierQuoteResponse[]
+
+  @@map("suppliers")
+}
+
+// ─────────────────────────────────────────────
+// VEHÍCULOS Y ALERTAS LEGALES
+// ─────────────────────────────────────────────
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Vehicle {
+  id        String        @id @default(cuid())
+  plate     String
+  brand     String
+  model     String
+  year      Int
+  color     String?
+  ownerId   String
+  owner     User          @relation(fields: [ownerId], references: [id])
+  status    VehicleStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  legalObligations   LegalObligation[]
+  diagnosticRequests DiagnosticRequest[]
+
+  @@unique([ownerId, plate])
+  @@index([ownerId])
+  @@index([plate])
+  @@map("vehicles")
+}
+
+enum LegalObligationType {
+  SOAT
+  RTM
+  INSURANCE
+}
+
+model LegalObligation {
+  id         String              @id @default(cuid())
+  vehicleId  String
+  vehicle    Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  type       LegalObligationType
+  expiryDate DateTime
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  alerts LegalAlert[]
+
+  @@unique([vehicleId, type])
+  @@index([expiryDate])
+  @@map("legal_obligations")
+}
+
+model LegalAlert {
+  id           String          @id @default(cuid())
+  obligationId String
+  obligation   LegalObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  daysBeforeDue Int
+  sentAt       DateTime?
+  cancelled    Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+
+  @@unique([obligationId, daysBeforeDue])
+  @@index([sentAt])
+  @@map("legal_alerts")
+}
+
+// ─────────────────────────────────────────────
+// DIAGNÓSTICOS
+// ─────────────────────────────────────────────
+
+enum DiagnosticRequestStatus {
+  PENDING
+  TAKEN
+  DIAGNOSED
+  EXPIRED
+}
+
+model DiagnosticRequest {
+  id           String                  @id @default(cuid())
+  vehicleId    String
+  vehicle      Vehicle                 @relation(fields: [vehicleId], references: [id])
+  clientId     String
+  client       User                    @relation(fields: [clientId], references: [id])
+  workshopId   String?
+  workshop     Workshop?               @relation("WorkshopDiagnostics", fields: [workshopId], references: [id])
+  description  String
+  status       DiagnosticRequestStatus @default(PENDING)
+  takenAt      DateTime?
+  diagnosedAt  DateTime?
+  resendCount  Int                     @default(0)
+  lastResendAt DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  photos    DiagnosticPhoto[]
+  diagnosis Diagnosis?
+  quotation Quotation?
+
+  @@index([clientId])
+  @@index([workshopId])
+  @@index([status])
+  @@map("diagnostic_requests")
+}
+
+model DiagnosticPhoto {
+  id                  String            @id @default(cuid())
+  diagnosticRequestId String
+  diagnosticRequest   DiagnosticRequest @relation(fields: [diagnosticRequestId], references: [id], onDelete: Cascade)
+  url                 String
+  createdAt           DateTime          @default(now())
+
+  @@map("diagnostic_photos")
+}
+
+model Diagnosis {
+  id                  String            @id @default(cuid())
+  diagnosticRequestId String            @unique
+  diagnosticRequest   DiagnosticRequest @relation(fields: [diagnosticRequestId], references: [id])
+  findings            String
+  recommendation      String?
+  createdAt           DateTime          @default(now())
+
+  @@map("diagnoses")
+}
+
+// ─────────────────────────────────────────────
+// COTIZACIONES
+// ─────────────────────────────────────────────
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+}
+
+model Quotation {
+  id                  String            @id @default(cuid())
+  diagnosticRequestId String            @unique
+  diagnosticRequest   DiagnosticRequest @relation(fields: [diagnosticRequestId], references: [id])
+  workshopId          String
+  workshop            Workshop          @relation(fields: [workshopId], references: [id])
+  status              QuotationStatus   @default(DRAFT)
+  subtotal            Decimal           @default(0) @db.Decimal(12, 2)
+  tax                 Decimal           @default(0) @db.Decimal(12, 2)
+  total               Decimal           @default(0) @db.Decimal(12, 2)
+  clientComment       String?
+  approvedAt          DateTime?
+  rejectedAt          DateTime?
+  rejectionReason     String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  items     QuotationItem[]
+  workOrder WorkOrder?
+
+  @@index([workshopId])
+  @@index([status])
+  @@map("quotations")
+}
+
+enum QuotationItemType {
+  SERVICE
+  PART
+}
+
+model QuotationItem {
+  id          String            @id @default(cuid())
+  quotationId String
+  quotation   Quotation         @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  type        QuotationItemType
+  description String
+  quantity    Int               @default(1)
+  unitPrice   Decimal          @db.Decimal(12, 2)
+  total       Decimal          @db.Decimal(12, 2)
+  productId   String?
+  product     Product?         @relation(fields: [productId], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@map("quotation_items")
+}
+
+// ─────────────────────────────────────────────
+// CATÁLOGO DE REPUESTOS (PROVEEDOR)
+// ─────────────────────────────────────────────
+
+enum ProductStatus {
+  ACTIVE
+  OUT_OF_STOCK
+  INACTIVE
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  supplierId  String
+  supplier    Supplier      @relation(fields: [supplierId], references: [id])
+  name        String
+  category    String?
+  price       Decimal       @db.Decimal(12, 2)
+  stock       Int           @default(0)
+  status      ProductStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  quotationItems         QuotationItem[]
+  supplierQuoteResponses SupplierQuoteResponse[]
+
+  @@index([supplierId])
+  @@index([name])
+  @@index([category])
+  @@map("products")
+}
+
+// ─────────────────────────────────────────────
+// SOLICITUDES DE COTIZACIÓN A PROVEEDORES
+// ─────────────────────────────────────────────
+
+enum SupplierQuoteRequestStatus {
+  PENDING
+  PARTIALLY_RESPONDED
+  FULLY_RESPONDED
+  EXPIRED
+}
+
+model SupplierQuoteRequest {
+  id          String                     @id @default(cuid())
+  workshopId  String
+  partName    String
+  quantity    Int                        @default(1)
+  status      SupplierQuoteRequestStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime                   @default(now())
+
+  responses SupplierQuoteResponse[]
+
+  @@index([status])
+  @@map("supplier_quote_requests")
+}
+
+model SupplierQuoteResponse {
+  id         String               @id @default(cuid())
+  requestId  String
+  request    SupplierQuoteRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier   Supplier             @relation(fields: [supplierId], references: [id])
+  productId  String?
+  product    Product?             @relation(fields: [productId], references: [id])
+  price      Decimal              @db.Decimal(12, 2)
+  deliveryDays Int?
+  respondedAt  DateTime           @default(now())
+
+  @@unique([requestId, supplierId])
+  @@map("supplier_quote_responses")
+}
+
+// ─────────────────────────────────────────────
+// ÓRDENES DE TRABAJO
+// ─────────────────────────────────────────────
+
+enum WorkOrderStatus {
+  CREATED
+  ASSIGNED
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model WorkOrder {
+  id           String          @id @default(cuid())
+  quotationId  String          @unique
+  quotation    Quotation       @relation(fields: [quotationId], references: [id])
+  workshopId   String
+  workshop     Workshop        @relation(fields: [workshopId], references: [id])
+  technicianId String?
+  technician   User?           @relation("AssignedTechnician", fields: [technicianId], references: [id])
+  status       WorkOrderStatus @default(CREATED)
+  observations String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  statusHistory WorkOrderStatusChange[]
+  invoice       Invoice?
+
+  @@index([workshopId])
+  @@index([technicianId])
+  @@index([status])
+  @@map("work_orders")
+}
+
+model WorkOrderStatusChange {
+  id          String          @id @default(cuid())
+  workOrderId String
+  workOrder   WorkOrder       @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  fromStatus  WorkOrderStatus?
+  toStatus    WorkOrderStatus
+  reason      String?
+  changedBy   String
+  createdAt   DateTime        @default(now())
+
+  @@index([workOrderId])
+  @@map("work_order_status_changes")
+}
+
+// ─────────────────────────────────────────────
+// FACTURACIÓN Y PAGOS
+// ─────────────────────────────────────────────
+
+enum InvoiceStatus {
+  ISSUED
+  PAYMENT_PENDING
+  PAID
+  CANCELLED
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  workOrderId  String        @unique
+  workOrder    WorkOrder     @relation(fields: [workOrderId], references: [id])
+  workshopId   String
+  workshop     Workshop      @relation(fields: [workshopId], references: [id])
+  subtotal     Decimal       @db.Decimal(12, 2)
+  tax          Decimal       @db.Decimal(12, 2)
+  total        Decimal       @db.Decimal(12, 2)
+  status       InvoiceStatus @default(ISSUED)
+  pdfUrl       String?
+  issuedAt     DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  payment Payment?
+
+  @@index([workshopId])
+  @@index([status])
+  @@index([issuedAt])
+  @@map("invoices")
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  invoiceId         String        @unique
+  invoice           Invoice       @relation(fields: [invoiceId], references: [id])
+  amount            Decimal       @db.Decimal(12, 2)
+  status            PaymentStatus @default(PENDING)
+  gatewayProvider   String?
+  gatewayOrderId    String?
+  gatewayTxnId      String?       @unique
+  gatewayRawResponse String?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([status])
+  @@index([gatewayTxnId])
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────
+// AUDITORÍA Y NOTIFICACIONES
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entity     String
+  entityId   String?
+  oldValue   String?
+  newValue   String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String
+  entityId  String?
+  read      Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
