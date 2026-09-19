@@ -152,10 +152,11 @@ export class AuthService {
     // WX-018: Generar tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role);
 
-    // Guardar refresh token
+    // Guardar hash del refresh token (C04: nunca almacenar en texto plano)
+    const tokenHash = crypto.createHash('sha256').update(tokens.refreshToken).digest('hex');
     await this.prisma.refreshToken.create({
       data: {
-        token: tokens.refreshToken,
+        token: tokenHash,
         userId: user.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días
       },
@@ -176,8 +177,9 @@ export class AuthService {
 
   // WX-018: Refresh token
   async refreshTokens(refreshToken: string) {
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
     const stored = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
+      where: { token: tokenHash },
       include: { user: true },
     });
 
@@ -197,9 +199,10 @@ export class AuthService {
       stored.user.role,
     );
 
+    const newHash = crypto.createHash('sha256').update(tokens.refreshToken).digest('hex');
     await this.prisma.refreshToken.create({
       data: {
-        token: tokens.refreshToken,
+        token: newHash,
         userId: stored.user.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
@@ -267,7 +270,8 @@ export class AuthService {
 
   // Logout
   async logout(refreshToken: string) {
-    await this.prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    await this.prisma.refreshToken.deleteMany({ where: { token: tokenHash } });
     return { message: 'Sesión cerrada.' };
   }
 

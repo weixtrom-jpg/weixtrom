@@ -1,6 +1,13 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+
+const SELF_REGISTER_ROLES = [
+  Role.CLIENT,
+  Role.WORKSHOP_ADMIN,
+  Role.SUPPLIER_ADMIN,
+  Role.TECHNICIAN,
+] as const;
 
 export class RegisterDto {
   @ApiProperty({ example: 'carlos@ejemplo.com' })
@@ -27,7 +34,7 @@ export class RegisterDto {
   @IsString()
   phone?: string;
 
-  @ApiProperty({ enum: Role, example: Role.CLIENT })
-  @IsEnum(Role, { message: 'El rol no es válido' })
+  @ApiProperty({ enum: SELF_REGISTER_ROLES, example: Role.CLIENT })
+  @IsIn(SELF_REGISTER_ROLES, { message: 'Rol no permitido para auto-registro' })
   role: Role;
 }

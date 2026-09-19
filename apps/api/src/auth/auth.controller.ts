@@ -1,7 +1,14 @@
 import { Controller, Post, Body, Param, Get, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
+import {
+  RegisterDto,
+  LoginDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  RefreshTokenDto,
+  ResendVerificationDto,
+} from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
@@ -24,8 +31,8 @@ export class AuthController {
 
   @Post('resend-verification')
   @ApiOperation({ summary: 'Reenviar correo de verificación' })
-  resendVerification(@Body('email') email: string) {
-    return this.auth.resendVerification(email);
+  resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.auth.resendVerification(dto.email);
   }
 
   @Post('login')
@@ -36,8 +43,8 @@ export class AuthController {
 
   @Post('refresh')
   @ApiOperation({ summary: 'Renovar tokens' })
-  refresh(@Body('refreshToken') refreshToken: string) {
-    return this.auth.refreshTokens(refreshToken);
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.auth.refreshTokens(dto.refreshToken);
   }
 
   @Post('forgot-password')
@@ -56,15 +63,17 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cerrar sesión' })
-  logout(@Body('refreshToken') refreshToken: string) {
-    return this.auth.logout(refreshToken);
+  logout(@Body() dto: RefreshTokenDto) {
+    return this.auth.logout(dto.refreshToken);
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener usuario actual' })
-  getMe(@CurrentUser() user: any) {
+  getMe(
+    @CurrentUser() user: { id: string; email: string; firstName: string; lastName: string; role: string },
+  ) {
     return user;
   }
 }
