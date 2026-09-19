@@ -1,13 +1,10 @@
-import { Stack } from 'expo-router';
+import { Slot } from 'expo-router';
+import { AuthProvider } from '../contexts/AuthContext';
 
 export default function RootLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: '#1F3864' },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: 'bold' },
-      }}
-    />
+    <AuthProvider>
+      <Slot />
+    </AuthProvider>
   );
 }
