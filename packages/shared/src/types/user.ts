@@ -1,4 +1,4 @@
-import { UserRole, UserStatus } from './enums';
+import { Role, UserStatus } from './enums';
 
 export interface User {
   id: string;
@@ -6,7 +6,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
-  role: UserRole;
+  role: Role;
   status: UserStatus;
   emailVerified: boolean;
   createdAt: Date;
@@ -30,5 +30,5 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   phone?: string;
-  role: UserRole;
+  role: Role;
 }

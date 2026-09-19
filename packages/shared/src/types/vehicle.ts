@@ -18,9 +18,17 @@ export interface LegalObligation {
   vehicleId: string;
   type: LegalObligationType;
   expiryDate: Date;
-  notified30: boolean;
-  notified15: boolean;
-  notified5: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LegalAlert {
+  id: string;
+  obligationId: string;
+  daysBeforeDue: number;
+  sentAt: Date | null;
+  cancelled: boolean;
+  createdAt: Date;
 }
 
 export interface CreateVehicleRequest {

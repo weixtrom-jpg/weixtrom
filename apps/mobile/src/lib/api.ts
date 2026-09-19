@@ -2,8 +2,33 @@ import { storage } from './storage';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefreshToken(): Promise<string | null> {
+  const refreshToken = await storage.getRefreshToken();
+  if (!refreshToken) return null;
+
+  try {
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    await storage.setAccessToken(data.accessToken);
+    await storage.setRefreshToken(data.refreshToken);
+    return data.accessToken;
+  } catch {
+    return null;
+  }
+}
+
 export const api = {
-  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  async request<T>(endpoint: string, options: RequestInit = {}, retry = true): Promise<T> {
     const token = await storage.getAccessToken();
 
     const headers: Record<string, string> = {
@@ -17,7 +42,20 @@ export const api = {
 
     const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
 
-    if (response.status === 401) {
+    if (response.status === 401 && retry) {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = tryRefreshToken();
+      }
+
+      const newToken = await refreshPromise;
+      isRefreshing = false;
+      refreshPromise = null;
+
+      if (newToken) {
+        return this.request<T>(endpoint, options, false);
+      }
+
       await storage.clearTokens();
       throw new Error('SESSION_EXPIRED');
     }

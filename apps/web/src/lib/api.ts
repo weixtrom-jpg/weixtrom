@@ -1,7 +1,28 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
-interface RequestOptions extends RequestInit {
-  params?: Record<string, string>;
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefreshToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return null;
+
+  try {
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    return data.accessToken;
+  } catch {
+    return null;
+  }
 }
 
 class ApiClient {
@@ -15,14 +36,8 @@ class ApiClient {
     return localStorage.getItem('accessToken');
   }
 
-  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { params, headers: customHeaders, ...fetchOptions } = options;
-
-    let url = `${this.baseUrl}${endpoint}`;
-    if (params) {
-      const searchParams = new URLSearchParams(params);
-      url += `?${searchParams.toString()}`;
-    }
+  private async request<T>(endpoint: string, options: RequestInit = {}, retry = true): Promise<T> {
+    const { headers: customHeaders, ...fetchOptions } = options;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -34,9 +49,26 @@ class ApiClient {
       headers.Authorization = `Bearer ${token}`;
     }
 
+    const url = `${this.baseUrl}${endpoint}`;
     const response = await fetch(url, { ...fetchOptions, headers });
 
-    if (response.status === 401) {
+    if (response.status === 401 && retry) {
+      // Intentar renovar el token una vez
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = tryRefreshToken();
+      }
+
+      const newToken = await refreshPromise;
+      isRefreshing = false;
+      refreshPromise = null;
+
+      if (newToken) {
+        // Reintentar con el nuevo token
+        return this.request<T>(endpoint, options, false);
+      }
+
+      // Refresh falló, cerrar sesión
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       window.location.href = '/login';
@@ -53,7 +85,12 @@ class ApiClient {
   }
 
   get<T>(endpoint: string, params?: Record<string, string>) {
-    return this.request<T>(endpoint, { method: 'GET', params });
+    let url = endpoint;
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      url += `?${searchParams.toString()}`;
+    }
+    return this.request<T>(url, { method: 'GET' });
   }
 
   post<T>(endpoint: string, body?: unknown) {

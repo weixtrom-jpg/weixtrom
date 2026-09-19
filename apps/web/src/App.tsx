@@ -7,6 +7,8 @@ import { PublicRoute } from '@/components/guards/PublicRoute';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 
 // Role dashboards
 import { ClientDashboard } from '@/pages/client/ClientDashboard';
@@ -43,54 +45,36 @@ function App() {
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+          <Route path="/verify" element={<VerifyEmailPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Redirect raíz según rol */}
           <Route path="/" element={<RoleRedirect />} />
 
           {/* Cliente */}
-          <Route path="/client/*" element={
-            <PrivateRoute allowedRoles={['CLIENT']}>
-              <Routes>
-                <Route index element={<ClientDashboard />} />
-              </Routes>
-            </PrivateRoute>
+          <Route path="/client" element={
+            <PrivateRoute allowedRoles={['CLIENT']}><ClientDashboard /></PrivateRoute>
           } />
 
           {/* Admin Taller */}
-          <Route path="/workshop/*" element={
-            <PrivateRoute allowedRoles={['WORKSHOP_ADMIN']}>
-              <Routes>
-                <Route index element={<WorkshopDashboard />} />
-              </Routes>
-            </PrivateRoute>
+          <Route path="/workshop" element={
+            <PrivateRoute allowedRoles={['WORKSHOP_ADMIN']}><WorkshopDashboard /></PrivateRoute>
           } />
 
           {/* Técnico */}
-          <Route path="/technician/*" element={
-            <PrivateRoute allowedRoles={['TECHNICIAN']}>
-              <Routes>
-                <Route index element={<TechnicianDashboard />} />
-              </Routes>
-            </PrivateRoute>
+          <Route path="/technician" element={
+            <PrivateRoute allowedRoles={['TECHNICIAN']}><TechnicianDashboard /></PrivateRoute>
           } />
 
           {/* Proveedor */}
-          <Route path="/supplier/*" element={
-            <PrivateRoute allowedRoles={['SUPPLIER_ADMIN']}>
-              <Routes>
-                <Route index element={<SupplierDashboard />} />
-              </Routes>
-            </PrivateRoute>
+          <Route path="/supplier" element={
+            <PrivateRoute allowedRoles={['SUPPLIER_ADMIN']}><SupplierDashboard /></PrivateRoute>
           } />
 
           {/* Super Admin */}
-          <Route path="/admin/*" element={
-            <PrivateRoute allowedRoles={['SUPER_ADMIN']}>
-              <Routes>
-                <Route index element={<AdminDashboard />} />
-              </Routes>
-            </PrivateRoute>
+          <Route path="/admin" element={
+            <PrivateRoute allowedRoles={['SUPER_ADMIN']}><AdminDashboard /></PrivateRoute>
           } />
 
           {/* 404 */}

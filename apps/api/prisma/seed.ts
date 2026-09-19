@@ -4,9 +4,14 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('SEED BLOQUEADO: No se puede ejecutar el seed en produccion.');
+    process.exit(1);
+  }
+
   console.log('Seeding database...');
 
-  // Super Admin
+  // Super Admin (contraseña solo para desarrollo local)
   const hashedPassword = await bcrypt.hash('Admin123!', 10);
 
   const superAdmin = await prisma.user.upsert({

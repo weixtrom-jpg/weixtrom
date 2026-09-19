@@ -20,6 +20,13 @@ export class NotificationsController {
     return this.notifications.getUserNotifications(userId, Number(page) || 1);
   }
 
+  // read-all ANTES de :id/read para evitar conflicto de rutas
+  @Patch('read-all')
+  @ApiOperation({ summary: 'Marcar todas como leidas' })
+  markAllAsRead(@CurrentUser('id') userId: string) {
+    return this.notifications.markAllAsRead(userId);
+  }
+
   @Patch(':id/read')
   @ApiOperation({ summary: 'Marcar notificacion como leida' })
   markAsRead(
@@ -27,11 +34,5 @@ export class NotificationsController {
     @CurrentUser('id') userId: string,
   ) {
     return this.notifications.markAsRead(id, userId);
-  }
-
-  @Patch('read-all')
-  @ApiOperation({ summary: 'Marcar todas como leidas' })
-  markAllAsRead(@CurrentUser('id') userId: string) {
-    return this.notifications.markAllAsRead(userId);
   }
 }
