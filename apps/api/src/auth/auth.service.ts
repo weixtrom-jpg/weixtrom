@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notifications/notification.service';
+import { AuditService } from '../audit/audit.service';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
 import { UserStatus } from '@prisma/client';
 
@@ -21,6 +22,7 @@ export class AuthService {
     private jwt: JwtService,
     private config: ConfigService,
     private notifications: NotificationService,
+    private audit: AuditService,
   ) {}
 
   // WX-016: Registro de usuario
@@ -36,6 +38,8 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -45,9 +49,11 @@ export class AuthService {
         phone: dto.phone,
         role: dto.role,
         verificationToken,
+        verificationTokenExpiry,
       },
     });
 
+    await this.audit.log({ userId: user.id, action: 'REGISTER', entity: 'User', entityId: user.id });
     await this.notifications.sendVerificationEmail(user.email, verificationToken, user.firstName);
 
     return {
@@ -66,14 +72,21 @@ export class AuthService {
       throw new BadRequestException('Token de verificación inválido o expirado');
     }
 
+    if (!user.verificationTokenExpiry || user.verificationTokenExpiry < new Date()) {
+      throw new BadRequestException('Token de verificación expirado. Solicita uno nuevo.');
+    }
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
         emailVerified: true,
         status: UserStatus.ACTIVE,
         verificationToken: null,
+        verificationTokenExpiry: null,
       },
     });
+
+    await this.audit.log({ userId: user.id, action: 'VERIFY_EMAIL', entity: 'User', entityId: user.id });
 
     return { message: 'Correo verificado exitosamente. Ya puedes iniciar sesión.' };
   }
@@ -86,9 +99,10 @@ export class AuthService {
     }
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { verificationToken },
+      data: { verificationToken, verificationTokenExpiry },
     });
 
     await this.notifications.sendVerificationEmail(user.email, verificationToken, user.firstName);
@@ -136,6 +150,16 @@ export class AuthService {
         where: { id: user.id },
         data: updateData,
       });
+
+      if (newAttempts >= 5) {
+        await this.audit.log({
+          userId: user.id,
+          action: 'ACCOUNT_LOCKED',
+          entity: 'User',
+          entityId: user.id,
+          newValue: { reason: '5 failed attempts' },
+        });
+      }
 
       throw new UnauthorizedException('Credenciales incorrectas');
     }
@@ -223,13 +247,15 @@ export class AuthService {
     if (!user) return { message };
 
     const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
     const resetTokenExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 min
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { resetToken, resetTokenExpiry },
+      data: { resetToken: resetTokenHash, resetTokenExpiry },
     });
 
+    // Enviar el token original (no hasheado) en el email
     await this.notifications.sendPasswordResetEmail(user.email, resetToken, user.firstName);
 
     return { message };
@@ -237,9 +263,12 @@ export class AuthService {
 
   // WX-020: Reset de contraseña
   async resetPassword(dto: ResetPasswordDto) {
+    // Hashear el token recibido para comparar con el almacenado
+    const tokenHash = crypto.createHash('sha256').update(dto.token).digest('hex');
+
     const user = await this.prisma.user.findFirst({
       where: {
-        resetToken: dto.token,
+        resetToken: tokenHash,
         resetTokenExpiry: { gt: new Date() },
       },
     });
@@ -266,6 +295,8 @@ export class AuthService {
 
     // Invalidar todos los refresh tokens
     await this.prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+
+    await this.audit.log({ userId: user.id, action: 'RESET_PASSWORD', entity: 'User', entityId: user.id });
 
     return { message: 'Contraseña actualizada exitosamente.' };
   }

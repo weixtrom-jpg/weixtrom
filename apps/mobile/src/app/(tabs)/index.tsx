@@ -1,9 +1,14 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function HomeTab() {
+  const { user } = useAuth();
+
+  const greeting = user ? `Hola, ${user.firstName}` : 'Hola';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.greeting}>Hola, Carlos</Text>
+      <Text style={styles.greeting}>{greeting}</Text>
       <Text style={styles.subtitle}>Tu resumen de hoy</Text>
 
       {/* Alertas legales */}

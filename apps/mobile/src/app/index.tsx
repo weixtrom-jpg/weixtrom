@@ -8,7 +8,7 @@ export default function HomeScreen() {
       <Text style={styles.title}>WEIXTROM</Text>
       <Text style={styles.subtitle}>MecaniControl Vehicular</Text>
       <View style={styles.badge}>
-        <Text style={styles.badgeText}>Sprint 1</Text>
+        <Text style={styles.badgeText}>MVP</Text>
       </View>
     </View>
   );

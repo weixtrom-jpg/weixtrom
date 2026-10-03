@@ -21,7 +21,7 @@ export default function RegisterScreen() {
   const update = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }));
 
   const handleRegister = async () => {
-    if (!form.firstName || !form.email || !form.password || !form.role) {
+    if (!form.firstName || !form.lastName || !form.email || !form.password || !form.role) {
       setError('Completa los campos obligatorios y selecciona tu rol');
       return;
     }

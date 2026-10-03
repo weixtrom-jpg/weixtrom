@@ -1,19 +1,35 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ProfileTab() {
+  const { user, logout } = useAuth();
+
+  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}` || '?';
+  const displayName = user ? `${user.firstName} ${user.lastName}` : 'Usuario';
+  const displayEmail = user?.email || '';
+
+  const handleMenuPress = (item: string) => {
+    if (item === 'Cerrar sesion') {
+      Alert.alert('Cerrar sesion', 'Estas seguro de que deseas cerrar sesion?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cerrar sesion', style: 'destructive', onPress: () => logout() },
+      ]);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>CD</Text>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <Text style={styles.name}>Carlos Demo</Text>
-        <Text style={styles.email}>cliente@demo.com</Text>
+        <Text style={styles.name}>{displayName}</Text>
+        <Text style={styles.email}>{displayEmail}</Text>
       </View>
 
       <View style={styles.menu}>
         {['Editar perfil', 'Notificaciones', 'Ayuda', 'Cerrar sesion'].map((item) => (
-          <TouchableOpacity key={item} style={styles.menuItem}>
+          <TouchableOpacity key={item} style={styles.menuItem} onPress={() => handleMenuPress(item)}>
             <Text style={[styles.menuText, item === 'Cerrar sesion' && styles.danger]}>
               {item}
             </Text>
