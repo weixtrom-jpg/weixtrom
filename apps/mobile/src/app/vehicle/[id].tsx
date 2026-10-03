@@ -209,8 +209,8 @@ export default function VehicleDetail() {
       }
       setHistoryPage(res.page);
       setHistoryTotalPages(res.totalPages);
-    } catch {
-      // Silently fail for history -- vehicle is already loaded
+    } catch (err) {
+      console.warn('Error cargando historial:', err);
     }
   }, [id]);
 
@@ -220,18 +220,18 @@ export default function VehicleDetail() {
         `/vehicles/${id}/legal-obligations?limit=50`,
       );
       setObligations(res.data);
-    } catch {
-      // Silently fail for obligations section
+    } catch (err) {
+      console.warn('Error cargando obligaciones:', err);
     }
   }, [id]);
 
   const loadAll = useCallback(async () => {
     await loadVehicle();
     await Promise.all([
-      loadHistory(1, historyFilter),
+      loadHistory(1, ''),
       loadObligations(),
     ]);
-  }, [loadVehicle, loadHistory, loadObligations, historyFilter]);
+  }, [loadVehicle, loadHistory, loadObligations]);
 
   useFocusEffect(
     useCallback(() => {
@@ -889,6 +889,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: 6,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   tabActive: { backgroundColor: '#fff' },
   tabText: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
@@ -906,7 +908,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#E2E6ED',
-    minHeight: 36,
+    minHeight: 44,
     justifyContent: 'center',
   },
   chipActive: { backgroundColor: '#1F3864' },
@@ -970,6 +972,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     marginTop: 8,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   loadMoreText: { fontSize: 14, color: '#1F3864', fontWeight: '600' },
 
