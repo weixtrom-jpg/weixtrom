@@ -10,7 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { VehiclesService } from './vehicles.service';
 import { CreateVehicleDto, UpdateVehicleDto } from './dto';
@@ -95,5 +95,32 @@ export class VehiclesController {
     @Param('id') vehicleId: string,
   ) {
     return this.vehicles.activate(userId, vehicleId);
+  }
+
+  @Get(':id/history')
+  @Roles(Role.CLIENT)
+  @ApiOperation({ summary: 'Historial consolidado de un vehículo' })
+  @ApiParam({ name: 'id', description: 'ID del vehículo' })
+  @ApiQuery({ name: 'type', required: false, enum: ['diagnostic', 'quotation', 'workorder', 'invoice'] })
+  @ApiQuery({ name: 'from', required: false, type: String, description: 'Fecha inicio YYYY-MM-DD' })
+  @ApiQuery({ name: 'to', required: false, type: String, description: 'Fecha fin YYYY-MM-DD' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getHistory(
+    @CurrentUser('id') userId: string,
+    @Param('id') vehicleId: string,
+    @Query('type') type?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.vehicles.getHistory(userId, vehicleId, {
+      type: type as 'diagnostic' | 'quotation' | 'workorder' | 'invoice' | undefined,
+      from,
+      to,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 }

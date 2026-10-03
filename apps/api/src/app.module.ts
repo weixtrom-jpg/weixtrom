@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { AuditModule } from './audit/audit.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
     AuthModule,
     UsersModule,
     VehiclesModule,
+    UploadsModule,
   ],
   controllers: [HealthController],
 })
