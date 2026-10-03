@@ -12,12 +12,9 @@ export class LegalAlertsCronService {
     private notifications: NotificationService,
   ) {}
 
-  @Cron('0 7 * * *', { name: 'legal-alerts-check' })
+  @Cron('0 7 * * *', { name: 'legal-alerts-check', timeZone: 'America/Bogota' })
   async handleLegalAlerts(): Promise<void> {
     this.logger.log('Starting legal alerts cron job...');
-
-    const now = new Date();
-    now.setHours(23, 59, 59, 999); // end of today
 
     // Query alerts where send date (expiryDate - daysBeforeDue) <= today
     // sentAt IS NULL and cancelled = false
@@ -77,7 +74,7 @@ export class LegalAlertsCronService {
           ? 'ya esta vencido'
           : `vence en ${daysLeft} dia${daysLeft !== 1 ? 's' : ''}`;
 
-        // 1. Notificacion in-app
+        // 1. Notificacion in-app + marcar enviada
         await this.notifications.createInAppNotification({
           userId: owner.id,
           title: 'Alerta de vencimiento',
@@ -86,20 +83,25 @@ export class LegalAlertsCronService {
           entityId: obligation.id,
         });
 
-        // 2. Email
-        await this.notifications.sendNotificationEmail(
-          owner.email,
-          'Alerta de vencimiento',
-          owner.firstName,
-          `<p>Tu <strong>${typeLabel}</strong> del vehiculo <strong>${vehicle.plate}</strong> (${vehicle.brand} ${vehicle.model}) ${daysText}.</p>
-          <p>Te recomendamos renovarlo a la brevedad para evitar inconvenientes.</p>`,
-        );
-
-        // 3. Marcar como enviada
         await this.prisma.legalAlert.update({
           where: { id: alert.id },
           data: { sentAt: new Date() },
         });
+
+        // 2. Email (fallo no reintenta ni duplica in-app)
+        try {
+          await this.notifications.sendNotificationEmail(
+            owner.email,
+            'Alerta de vencimiento',
+            owner.firstName,
+            `<p>Tu <strong>${typeLabel}</strong> del vehiculo <strong>${vehicle.plate}</strong> (${vehicle.brand} ${vehicle.model}) ${daysText}.</p>
+            <p>Te recomendamos renovarlo a la brevedad para evitar inconvenientes.</p>`,
+          );
+        } catch (emailError) {
+          this.logger.warn(
+            `Email failed for alert ${alert.id}: ${emailError instanceof Error ? emailError.message : String(emailError)}`,
+          );
+        }
 
         sent++;
       } catch (error) {

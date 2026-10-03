@@ -163,7 +163,10 @@ export class UploadsService implements OnModuleInit {
   }
 
   private async deleteLocal(key: string): Promise<void> {
-    const filePath = path.join(this.localUploadDir, key);
+    const filePath = path.resolve(this.localUploadDir, key);
+    if (!filePath.startsWith(path.resolve(this.localUploadDir))) {
+      throw new BadRequestException('Ruta de archivo inválida.');
+    }
     try {
       await fs.unlink(filePath);
     } catch (error: unknown) {
