@@ -194,12 +194,9 @@ export class LegalObligationsService {
       data: { expiryDate: newExpiryDate },
     });
 
-    // 2. Eliminar alertas no enviadas para liberar el unique constraint
+    // 2. Eliminar TODAS las alertas para liberar el unique constraint
     await this.prisma.legalAlert.deleteMany({
-      where: {
-        obligationId: id,
-        sentAt: null,
-      },
+      where: { obligationId: id },
     });
 
     // 3. Regenerar hitos con la nueva fecha
