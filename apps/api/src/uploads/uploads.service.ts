@@ -109,11 +109,7 @@ export class UploadsService implements OnModuleInit {
     }
   }
 
-  private getExtension(originalName: string, mimetype: string): string {
-    const extFromName = path.extname(originalName).replace('.', '').toLowerCase();
-    if (extFromName) return extFromName;
-
-    // Fallback based on MIME type
+  private getExtension(_originalName: string, mimetype: string): string {
     const mimeToExt: Record<string, string> = {
       'image/jpeg': 'jpg',
       'image/png': 'png',
@@ -153,7 +149,10 @@ export class UploadsService implements OnModuleInit {
     file: Express.Multer.File,
     key: string,
   ): Promise<{ url: string; key: string }> {
-    const filePath = path.join(this.localUploadDir, key);
+    const filePath = path.resolve(this.localUploadDir, key);
+    if (!filePath.startsWith(path.resolve(this.localUploadDir))) {
+      throw new BadRequestException('Ruta de archivo inválida.');
+    }
     const dir = path.dirname(filePath);
 
     await fs.mkdir(dir, { recursive: true });
