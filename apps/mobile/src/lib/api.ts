@@ -80,4 +80,8 @@ export const api = {
   patch<T>(endpoint: string, body?: unknown) {
     return this.request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body) });
   },
+
+  delete<T>(endpoint: string) {
+    return this.request<T>(endpoint, { method: 'DELETE' });
+  },
 };
