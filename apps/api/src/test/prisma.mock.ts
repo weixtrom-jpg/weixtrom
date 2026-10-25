@@ -56,10 +56,38 @@ export function createMockPrismaService(): MockPrismaService {
       count: jest.fn(),
       updateMany: jest.fn(),
     },
+    workshop: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
+    diagnosticRequest: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
+    },
+    diagnosticPhoto: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+    },
+    diagnosis: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    },
     auditLog: {
       create: jest.fn(),
     },
     $connect: jest.fn(),
     $disconnect: jest.fn(),
+    $transaction: jest.fn(),
   } as unknown as MockPrismaService;
 }

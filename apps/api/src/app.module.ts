@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { LegalObligationsModule } from './legal-obligations/legal-obligations.module';
+import { DiagnosticsModule } from './diagnostics/diagnostics.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { LegalObligationsModule } from './legal-obligations/legal-obligations.mo
     VehiclesModule,
     UploadsModule,
     LegalObligationsModule,
+    DiagnosticsModule,
   ],
   controllers: [HealthController],
   providers: [
