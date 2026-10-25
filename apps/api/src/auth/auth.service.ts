@@ -1,6 +1,5 @@
 import {
   Injectable,
-  ConflictException,
   UnauthorizedException,
   BadRequestException,
   ForbiddenException,
@@ -27,9 +26,18 @@ export class AuthService {
 
   // WX-016: Registro de usuario
   async register(dto: RegisterDto) {
+    // S4: Respuesta genérica — no revelar si el correo ya existe
+    const genericResponse = {
+      message: 'Revisa tu correo para verificar tu cuenta.',
+    };
+
     const exists = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (exists) {
-      throw new ConflictException('Ya existe una cuenta con este correo');
+      // S4: Notificar al dueño de la cuenta sin revelar info en la API
+      await this.notifications.sendAccountExistsEmail(exists.email, exists.firstName);
+      // S4: Igualar latencia con bcrypt dummy para evitar timing side-channel
+      await bcrypt.hash('timing-equalization', 10);
+      return genericResponse;
     }
 
     // WX-021: Validar política de contraseñas
@@ -37,6 +45,8 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
+    // S2: Hashear el token antes de almacenarlo
+    const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
     const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
 
@@ -48,24 +58,24 @@ export class AuthService {
         lastName: dto.lastName,
         phone: dto.phone,
         role: dto.role,
-        verificationToken,
+        verificationToken: verificationTokenHash,
         verificationTokenExpiry,
       },
     });
 
     await this.audit.log({ userId: user.id, action: 'REGISTER', entity: 'User', entityId: user.id });
+    // S2: Enviar el token original (no hasheado) por email
     await this.notifications.sendVerificationEmail(user.email, verificationToken, user.firstName);
 
-    return {
-      message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
-      userId: user.id,
-    };
+    return genericResponse;
   }
 
   // WX-017: Verificación de correo
   async verifyEmail(token: string) {
+    // S2: Hashear el token recibido para comparar con el almacenado
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const user = await this.prisma.user.findFirst({
-      where: { verificationToken: token },
+      where: { verificationToken: tokenHash },
     });
 
     if (!user) {
@@ -99,12 +109,15 @@ export class AuthService {
     }
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
+    // S2: Hashear el token antes de almacenarlo
+    const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
     const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { verificationToken, verificationTokenExpiry },
+      data: { verificationToken: verificationTokenHash, verificationTokenExpiry },
     });
 
+    // S2: Enviar el token original (no hasheado) por email
     await this.notifications.sendVerificationEmail(user.email, verificationToken, user.firstName);
 
     return { message: 'Si el correo existe y no está verificado, se envió un nuevo enlace.' };
