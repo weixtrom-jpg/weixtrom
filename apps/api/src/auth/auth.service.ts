@@ -1,6 +1,5 @@
 import {
   Injectable,
-  ConflictException,
   UnauthorizedException,
   BadRequestException,
   ForbiddenException,
@@ -36,6 +35,8 @@ export class AuthService {
     if (exists) {
       // S4: Notificar al dueño de la cuenta sin revelar info en la API
       await this.notifications.sendAccountExistsEmail(exists.email, exists.firstName);
+      // S4: Igualar latencia con bcrypt dummy para evitar timing side-channel
+      await bcrypt.hash('timing-equalization', 10);
       return genericResponse;
     }
 
