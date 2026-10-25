@@ -17,6 +17,15 @@ export class NotificationService {
     this.appUrl = this.config.get<string>('APP_URL') || 'http://localhost:5173';
   }
 
+  private escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   // WX-017: Correo de verificacion
   async sendVerificationEmail(email: string, token: string, firstName: string) {
     const verifyUrl = `${this.appUrl}/verify?token=${token}`;
@@ -25,7 +34,7 @@ export class NotificationService {
       to: email,
       subject: 'Verifica tu cuenta en WEIXTROM',
       html: baseTemplate(`
-        <h2 style="color: #1F3864; margin: 0 0 16px;">Hola ${firstName},</h2>
+        <h2 style="color: #1F3864; margin: 0 0 16px;">Hola ${this.escapeHtml(firstName)},</h2>
         <p>Gracias por registrarte en WEIXTROM. Para activar tu cuenta, haz clic en el siguiente boton:</p>
         <div style="text-align: center;">
           <a href="${verifyUrl}" class="btn">Verificar mi correo</a>
@@ -48,7 +57,7 @@ export class NotificationService {
       to: email,
       subject: 'Restablecer tu contrasena - WEIXTROM',
       html: baseTemplate(`
-        <h2 style="color: #1F3864; margin: 0 0 16px;">Hola ${firstName},</h2>
+        <h2 style="color: #1F3864; margin: 0 0 16px;">Hola ${this.escapeHtml(firstName)},</h2>
         <p>Recibimos una solicitud para restablecer la contrasena de tu cuenta.</p>
         <div style="text-align: center;">
           <a href="${resetUrl}" class="btn">Restablecer contrasena</a>
@@ -63,6 +72,27 @@ export class NotificationService {
     return sent;
   }
 
+  async sendAccountExistsEmail(email: string, firstName: string) {
+    const loginUrl = `${this.appUrl}/login`;
+
+    const sent = await this.mail.send({
+      to: email,
+      subject: 'Intento de registro en WEIXTROM',
+      html: baseTemplate(`
+        <h2 style="color: #1F3864; margin: 0 0 16px;">Hola ${this.escapeHtml(firstName)},</h2>
+        <p>Alguien intento registrar una nueva cuenta con tu correo electronico en WEIXTROM.</p>
+        <p>Si fuiste tu, ya tienes una cuenta. Puedes iniciar sesion directamente:</p>
+        <div style="text-align: center;">
+          <a href="${loginUrl}" class="btn">Iniciar sesion</a>
+        </div>
+        <p class="muted">Si no fuiste tu, puedes ignorar este correo. Tu cuenta sigue segura.</p>
+      `),
+    });
+
+    await this.logNotification(email, 'ACCOUNT_EXISTS_EMAIL', sent);
+    return sent;
+  }
+
   // Notificacion generica (cambios de estado, alertas, etc.)
   async sendNotificationEmail(
     email: string,
@@ -74,7 +104,7 @@ export class NotificationService {
       to: email,
       subject: `${subject} - WEIXTROM`,
       html: baseTemplate(`
-        <h2 style="color: #1F3864; margin: 0 0 16px;">Hola ${firstName},</h2>
+        <h2 style="color: #1F3864; margin: 0 0 16px;">Hola ${this.escapeHtml(firstName)},</h2>
         ${bodyHtml}
         <div style="text-align: center; margin-top: 24px;">
           <a href="${this.appUrl}" class="btn">Ir a WEIXTROM</a>
