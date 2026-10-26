@@ -1,21 +1,27 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma, DiagnosticRequestStatus, Role } from '@prisma/client';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Prisma, DiagnosticRequestStatus, Role, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notifications/notification.service';
 import { CreateDiagnosticRequestDto } from './dto/create-diagnostic-request.dto';
 import { DiagnoseDto } from './dto/diagnose.dto';
 
 @Injectable()
 export class DiagnosticsService {
+  private logger = new Logger(DiagnosticsService.name);
+
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private notifications: NotificationService,
   ) {}
 
   // ─── WX-044 / RF-014: Crear solicitud de diagnóstico ────────────
@@ -51,6 +57,9 @@ export class DiagnosticsService {
       entityId: request.id,
       newValue: { vehicleId: dto.vehicleId, description: dto.description },
     });
+
+    // WX-045: Notificar a talleres verificados y activos (fire-and-forget)
+    this.notifyVerifiedWorkshops(dto.description).catch(() => {});
 
     return request;
   }
@@ -290,5 +299,76 @@ export class DiagnosticsService {
       where: { id: requestId },
       include: { vehicle: true, diagnosis: true, photos: true },
     });
+  }
+
+  // ─── WX-045: Notificar talleres verificados y activos ────────────
+
+  async notifyVerifiedWorkshops(description: string) {
+    try {
+      const workshops = await this.prisma.workshop.findMany({
+        where: {
+          isVerified: true,
+          isActive: true,
+          admin: { status: UserStatus.ACTIVE },
+        },
+        include: { admin: { select: { email: true, firstName: true, status: true } } },
+      });
+
+      const results = await Promise.allSettled(
+        workshops.map((ws) =>
+          this.notifications.sendNewDiagnosticRequestEmail(
+            ws.admin.email,
+            ws.name,
+            description,
+          ),
+        ),
+      );
+
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) {
+        this.logger.warn(
+          `WX-045: ${failed}/${workshops.length} notificaciones a talleres fallaron`,
+        );
+      }
+    } catch (error) {
+      // No bloquear la creación de la solicitud si falla la notificación
+      this.logger.error('WX-045: Error al notificar talleres', error);
+    }
+  }
+
+  // ─── WX-048: Reenvío de notificación tras 24h sin respuesta ────────────
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async handleResendNotifications() {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // Buscar solicitudes PENDING creadas hace >24h que no han sido reenviadas
+    const staleRequests = await this.prisma.diagnosticRequest.findMany({
+      where: {
+        status: DiagnosticRequestStatus.PENDING,
+        createdAt: { lt: twentyFourHoursAgo },
+        lastResendAt: null,
+      },
+    });
+
+    if (staleRequests.length === 0) return;
+
+    this.logger.log(`WX-048: ${staleRequests.length} solicitudes pendientes >24h, reenviando notificaciones`);
+
+    for (const request of staleRequests) {
+      try {
+        await this.notifyVerifiedWorkshops(request.description);
+
+        await this.prisma.diagnosticRequest.update({
+          where: { id: request.id },
+          data: {
+            resendCount: { increment: 1 },
+            lastResendAt: new Date(),
+          },
+        });
+      } catch (error) {
+        this.logger.error(`WX-048: Error al reenviar notificación para solicitud ${request.id}`, error);
+      }
+    }
   }
 }

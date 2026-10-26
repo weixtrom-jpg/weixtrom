@@ -12,6 +12,7 @@ const config: Config = {
   testEnvironment: 'node',
   moduleNameMapper: {
     '^@weixtrom/shared(.*)$': '<rootDir>/../../packages/shared/src$1',
+    '^@nestjs/schedule$': '<rootDir>/test/__mocks__/nestjs-schedule.ts',
   },
 };
 

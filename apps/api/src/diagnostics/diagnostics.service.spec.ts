@@ -9,22 +9,30 @@ import { DiagnosticRequestStatus, Role } from '@prisma/client';
 import { DiagnosticsService } from './diagnostics.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notifications/notification.service';
 import { createMockPrismaService } from '../test/prisma.mock';
 
 describe('DiagnosticsService', () => {
   let service: DiagnosticsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
   let audit: Record<string, jest.Mock>;
+  let notifications: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     prisma = createMockPrismaService();
     audit = { log: jest.fn().mockResolvedValue(undefined) };
+    notifications = {
+      sendNewDiagnosticRequestEmail: jest.fn().mockResolvedValue(true),
+      sendNotificationEmail: jest.fn().mockResolvedValue(true),
+      createInAppNotification: jest.fn().mockResolvedValue({}),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DiagnosticsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: audit },
+        { provide: NotificationService, useValue: notifications },
       ],
     }).compile();
 
@@ -47,6 +55,7 @@ describe('DiagnosticsService', () => {
         vehicle: { id: 'v-1' },
       };
       prisma.diagnosticRequest.create.mockResolvedValue(created);
+      prisma.workshop.findMany.mockResolvedValue([]);
 
       const result = await service.create(clientId, dto);
 
@@ -364,6 +373,117 @@ describe('DiagnosticsService', () => {
 
       const findCall = prisma.diagnosticRequest.findMany.mock.calls[0][0];
       expect(findCall.where.AND).toBeDefined();
+    });
+  });
+
+  // ─── WX-045: Notificación a talleres ────────────
+
+  describe('notifyVerifiedWorkshops', () => {
+    it('debe notificar solo a talleres verificados, activos con admin activo', async () => {
+      prisma.workshop.findMany.mockResolvedValue([
+        { id: 'ws-1', name: 'Taller A', admin: { email: 'a@t.com', firstName: 'A', status: 'ACTIVE' } },
+        { id: 'ws-2', name: 'Taller B', admin: { email: 'b@t.com', firstName: 'B', status: 'ACTIVE' } },
+      ]);
+
+      await service.notifyVerifiedWorkshops('Motor ruidoso');
+
+      expect(prisma.workshop.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isVerified: true,
+            isActive: true,
+            admin: { status: 'ACTIVE' },
+          }),
+        }),
+      );
+      expect(notifications.sendNewDiagnosticRequestEmail).toHaveBeenCalledTimes(2);
+    });
+
+    it('no debe lanzar error si no hay talleres', async () => {
+      prisma.workshop.findMany.mockResolvedValue([]);
+
+      await expect(service.notifyVerifiedWorkshops('test')).resolves.not.toThrow();
+      expect(notifications.sendNewDiagnosticRequestEmail).not.toHaveBeenCalled();
+    });
+
+    it('no debe bloquear si falla el envío de notificaciones', async () => {
+      prisma.workshop.findMany.mockRejectedValue(new Error('DB error'));
+
+      // No debe lanzar — el error se captura internamente
+      await expect(service.notifyVerifiedWorkshops('test')).resolves.not.toThrow();
+    });
+  });
+
+  // ─── WX-045: create envía notificación ────────────
+
+  describe('create — notificación a talleres', () => {
+    it('debe enviar notificaciones a talleres al crear solicitud', async () => {
+      const clientId = 'client-1';
+      const dto = { vehicleId: 'v-1', description: 'Motor ruidoso' };
+
+      prisma.vehicle.findUnique.mockResolvedValue({ id: 'v-1', ownerId: clientId });
+      prisma.diagnosticRequest.create.mockResolvedValue({
+        id: 'dr-1',
+        ...dto,
+        clientId,
+        status: DiagnosticRequestStatus.PENDING,
+        vehicle: { id: 'v-1' },
+      });
+      prisma.workshop.findMany.mockResolvedValue([]);
+
+      await service.create(clientId, dto);
+
+      // Verifica que se intentó notificar (workshop.findMany se llamó para buscar talleres)
+      expect(prisma.workshop.findMany).toHaveBeenCalled();
+    });
+  });
+
+  // ─── WX-048: Reenvío de notificaciones ────────────
+
+  describe('handleResendNotifications', () => {
+    it('debe reenviar notificaciones para solicitudes PENDING >24h sin reenvío previo', async () => {
+      const staleRequest = {
+        id: 'dr-old',
+        description: 'Problema viejo',
+        status: DiagnosticRequestStatus.PENDING,
+        lastResendAt: null,
+        createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+      };
+
+      prisma.diagnosticRequest.findMany.mockResolvedValue([staleRequest]);
+      prisma.workshop.findMany.mockResolvedValue([
+        { id: 'ws-1', name: 'Taller A', admin: { email: 'a@t.com', firstName: 'A', status: 'ACTIVE' } },
+      ]);
+      prisma.diagnosticRequest.update.mockResolvedValue({});
+
+      await service.handleResendNotifications();
+
+      expect(prisma.diagnosticRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'dr-old' },
+          data: expect.objectContaining({
+            resendCount: { increment: 1 },
+          }),
+        }),
+      );
+    });
+
+    it('no debe hacer nada si no hay solicitudes pendientes', async () => {
+      prisma.diagnosticRequest.findMany.mockResolvedValue([]);
+
+      await service.handleResendNotifications();
+
+      expect(prisma.diagnosticRequest.update).not.toHaveBeenCalled();
+    });
+
+    it('no debe reenviar solicitudes que ya tienen lastResendAt', async () => {
+      prisma.diagnosticRequest.findMany.mockResolvedValue([]);
+
+      await service.handleResendNotifications();
+
+      // La query ya filtra lastResendAt: null, así que no debe procesar nada
+      const call = prisma.diagnosticRequest.findMany.mock.calls[0][0];
+      expect(call.where.lastResendAt).toBeNull();
     });
   });
 });
