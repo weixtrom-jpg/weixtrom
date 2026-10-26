@@ -147,6 +147,11 @@ export class AuthService {
       throw new ForbiddenException('Tu cuenta está suspendida. Contacta al administrador.');
     }
 
+    // WX-088: Soft-delete — usuario eliminado por admin
+    if (user.status === UserStatus.BLOCKED && !user.lockedUntil) {
+      throw new ForbiddenException('Tu cuenta ha sido desactivada. Contacta al administrador.');
+    }
+
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
 
     if (!passwordValid) {

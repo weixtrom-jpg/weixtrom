@@ -83,6 +83,14 @@ export function createMockPrismaService(): MockPrismaService {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    supplier: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
     auditLog: {
       create: jest.fn(),
     },
