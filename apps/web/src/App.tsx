@@ -13,9 +13,12 @@ import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 // Role dashboards
 import { ClientDashboard } from '@/pages/client/ClientDashboard';
 import { WorkshopDashboard } from '@/pages/workshop/WorkshopDashboard';
+import { WorkshopRequestsPage } from '@/pages/workshop/WorkshopRequestsPage';
+import { WorkshopRequestDetailPage } from '@/pages/workshop/WorkshopRequestDetailPage';
 import { TechnicianDashboard } from '@/pages/technician/TechnicianDashboard';
 import { SupplierDashboard } from '@/pages/supplier/SupplierDashboard';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
 
 const ROLE_HOME: Record<string, string> = {
@@ -61,6 +64,12 @@ function App() {
           <Route path="/workshop" element={
             <PrivateRoute allowedRoles={['WORKSHOP_ADMIN']}><WorkshopDashboard /></PrivateRoute>
           } />
+          <Route path="/workshop/requests" element={
+            <PrivateRoute allowedRoles={['WORKSHOP_ADMIN']}><WorkshopRequestsPage /></PrivateRoute>
+          } />
+          <Route path="/workshop/requests/:id" element={
+            <PrivateRoute allowedRoles={['WORKSHOP_ADMIN']}><WorkshopRequestDetailPage /></PrivateRoute>
+          } />
 
           {/* Técnico */}
           <Route path="/technician" element={
@@ -75,6 +84,9 @@ function App() {
           {/* Super Admin */}
           <Route path="/admin" element={
             <PrivateRoute allowedRoles={['SUPER_ADMIN']}><AdminDashboard /></PrivateRoute>
+          } />
+          <Route path="/admin/users" element={
+            <PrivateRoute allowedRoles={['SUPER_ADMIN']}><AdminUsersPage /></PrivateRoute>
           } />
 
           {/* 404 */}
