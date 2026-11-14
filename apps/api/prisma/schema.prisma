@@ -100,6 +100,7 @@ model Workshop {
   quotations         Quotation[]
   workOrders         WorkOrder[]
   invoices           Invoice[]
+  supplierQuoteRequests SupplierQuoteRequest[]
 
   @@map("workshops")
 }
@@ -352,8 +353,10 @@ enum SupplierQuoteRequestStatus {
 model SupplierQuoteRequest {
   id          String                     @id @default(cuid())
   workshopId  String
+  workshop    Workshop                   @relation(fields: [workshopId], references: [id])
   partName    String
   quantity    Int                        @default(1)
+  supplierIds String[]
   status      SupplierQuoteRequestStatus @default(PENDING)
   expiresAt   DateTime
   createdAt   DateTime                   @default(now())

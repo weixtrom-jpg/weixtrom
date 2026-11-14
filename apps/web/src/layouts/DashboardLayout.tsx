@@ -23,13 +23,13 @@ export function DashboardLayout({ children, roleName, navItems }: DashboardLayou
       <header className="bg-brand-navy text-white h-14 flex items-center px-4 lg:px-6 sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <span className="font-bold text-lg">WEIXTROM</span>
-          <span className="text-blue-300 text-sm hidden sm:inline">| {roleName}</span>
+          <span className="text-white/70 text-sm hidden sm:inline">| {roleName}</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
-          <Link to="/notifications" className="text-blue-200 hover:text-white text-sm">
+          <Link to="/notifications" className="text-white/60 hover:text-white text-sm">
             Notificaciones
           </Link>
-          <button onClick={logout} className="text-blue-200 hover:text-white text-sm">
+          <button onClick={logout} className="text-white/60 hover:text-white text-sm">
             Cerrar sesion
           </button>
         </div>

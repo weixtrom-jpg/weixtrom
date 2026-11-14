@@ -14,6 +14,9 @@ import { UploadsModule } from './uploads/uploads.module';
 import { LegalObligationsModule } from './legal-obligations/legal-obligations.module';
 import { DiagnosticsModule } from './diagnostics/diagnostics.module';
 import { AdminModule } from './admin/admin.module';
+import { SupplierQuotesModule } from './supplier-quotes/supplier-quotes.module';
+import { ProductsModule } from './products/products.module';
+import { QuotationsModule } from './quotations/quotations.module';
 
 @Module({
   imports: [
@@ -31,6 +34,9 @@ import { AdminModule } from './admin/admin.module';
     LegalObligationsModule,
     DiagnosticsModule,
     AdminModule,
+    ProductsModule,
+    QuotationsModule,
+    SupplierQuotesModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -118,8 +118,10 @@ export function WorkshopRequestDetailPage() {
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-16">
-          <div className="animate-spin h-6 w-6 border-4 border-brand-orange border-t-transparent rounded-full" />
+        <div className="animate-pulse space-y-3 p-4">
+          <div className="h-4 bg-surface-border rounded w-1/3" />
+            <div className="h-4 bg-surface-border rounded w-full" />
+            <div className="h-4 bg-surface-border rounded w-2/3" />
         </div>
       )}
 

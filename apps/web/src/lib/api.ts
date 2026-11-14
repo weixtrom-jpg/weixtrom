@@ -52,8 +52,9 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     const response = await fetch(url, { ...fetchOptions, headers });
 
-    if (response.status === 401 && retry) {
-      // Intentar renovar el token una vez
+    const isAuthEndpoint = endpoint.startsWith('/auth/');
+
+    if (response.status === 401 && retry && !isAuthEndpoint) {
       if (!isRefreshing) {
         isRefreshing = true;
         refreshPromise = tryRefreshToken();
@@ -64,11 +65,9 @@ class ApiClient {
       refreshPromise = null;
 
       if (newToken) {
-        // Reintentar con el nuevo token
         return this.request<T>(endpoint, options, false);
       }
 
-      // Refresh falló, cerrar sesión
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       window.location.href = '/login';

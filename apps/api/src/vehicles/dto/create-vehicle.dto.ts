@@ -13,6 +13,8 @@ import { Transform } from 'class-transformer';
 
 const COLOMBIAN_PLATE_REGEX = /^[A-Z]{3}\d{2}[A-Z0-9]$/;
 const CURRENT_YEAR = new Date().getFullYear();
+const stripHtml = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.replace(/<[^>]*>/g, '').trim() : value;
 
 export class CreateVehicleDto {
   @ApiProperty({
@@ -35,12 +37,14 @@ export class CreateVehicleDto {
   @IsString({ message: 'La marca debe ser texto' })
   @IsNotEmpty({ message: 'La marca es obligatoria' })
   @MaxLength(50, { message: 'La marca no puede exceder 50 caracteres' })
+  @Transform(stripHtml)
   brand: string;
 
   @ApiProperty({ example: 'Spark GT' })
   @IsString({ message: 'El modelo debe ser texto' })
   @IsNotEmpty({ message: 'El modelo es obligatorio' })
   @MaxLength(50, { message: 'El modelo no puede exceder 50 caracteres' })
+  @Transform(stripHtml)
   model: string;
 
   @ApiProperty({ example: 2020 })
@@ -53,5 +57,6 @@ export class CreateVehicleDto {
   @IsOptional()
   @IsString({ message: 'El color debe ser texto' })
   @MaxLength(30, { message: 'El color no puede exceder 30 caracteres' })
+  @Transform(stripHtml)
   color?: string;
 }

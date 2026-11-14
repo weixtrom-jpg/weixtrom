@@ -9,11 +9,11 @@ interface BadgeProps {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  default: 'bg-gray-100 text-gray-700',
+  default: 'bg-surface-muted text-text-secondary',
   success: 'bg-green-100 text-green-800',
-  warning: 'bg-amber-100 text-amber-800',
+  warning: 'bg-brand-amber/10 text-brand-amber',
   danger: 'bg-red-100 text-red-800',
-  info: 'bg-blue-100 text-blue-800',
+  info: 'bg-brand-navy/10 text-brand-navy',
 };
 
 export function Badge({ variant = 'default', children, className = '' }: BadgeProps) {
