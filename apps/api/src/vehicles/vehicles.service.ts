@@ -19,13 +19,13 @@ export class VehiclesService {
   ) {}
 
   async create(userId: string, dto: CreateVehicleDto) {
-    const existing = await this.prisma.vehicle.findUnique({
-      where: { ownerId_plate: { ownerId: userId, plate: dto.plate } },
+    const existing = await this.prisma.vehicle.findFirst({
+      where: { plate: dto.plate },
     });
 
     if (existing) {
       throw new ConflictException(
-        'Ya tienes un vehículo registrado con esta placa.',
+        'Ya existe un vehículo registrado con esta placa.',
       );
     }
 
@@ -56,7 +56,7 @@ export class VehiclesService {
         error.code === 'P2002'
       ) {
         throw new ConflictException(
-          'Ya tienes un vehículo registrado con esta placa.',
+          'Ya existe un vehículo registrado con esta placa.',
         );
       }
       throw error;

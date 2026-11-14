@@ -108,7 +108,11 @@ export function ClientVehiclesPage() {
                   {vehicles.map((v) => {
                     const badge = STATUS_BADGE[v.status] ?? STATUS_BADGE.ACTIVE;
                     return (
-                      <tr key={v.id} className="border-b border-surface-border last:border-b-0 hover:bg-surface-muted/30 transition-colors">
+                      <tr
+                        key={v.id}
+                        className="border-b border-surface-border last:border-b-0 hover:bg-surface-muted/30 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/client/vehicles/${v.id}`)}
+                      >
                         <td className="px-4 py-3 text-text-primary font-mono text-xs font-medium">{v.plate}</td>
                         <td className="px-4 py-3 text-text-primary">{v.brand}</td>
                         <td className="px-4 py-3 text-text-secondary">{v.model}</td>
@@ -127,7 +131,11 @@ export function ClientVehiclesPage() {
               {vehicles.map((v) => {
                 const badge = STATUS_BADGE[v.status] ?? STATUS_BADGE.ACTIVE;
                 return (
-                  <div key={v.id} className="p-4 space-y-2">
+                  <div
+                    key={v.id}
+                    className="p-4 space-y-2 cursor-pointer hover:bg-surface-muted/30 transition-colors"
+                    onClick={() => navigate(`/client/vehicles/${v.id}`)}
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium text-text-primary font-mono">{v.plate}</p>
