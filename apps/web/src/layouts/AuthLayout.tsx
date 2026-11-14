@@ -11,7 +11,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       <div className="hidden lg:flex lg:w-1/2 bg-brand-navy items-center justify-center p-12">
         <div className="text-white max-w-md">
           <h1 className="text-4xl font-bold mb-4">WEIXTROM</h1>
-          <p className="text-lg text-blue-200">
+          <p className="text-lg text-white/70">
             MecaniControl Vehicular — Conectamos clientes, talleres y proveedores
             en un flujo continuo de mantenimiento vehicular.
           </p>
