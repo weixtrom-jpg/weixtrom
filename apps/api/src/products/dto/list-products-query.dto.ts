@@ -1,8 +1,17 @@
-import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsIn, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ListProductsQueryDto {
+  @ApiProperty({
+    required: false,
+    enum: ['ACTIVE', 'OUT_OF_STOCK', 'INACTIVE'],
+    description: 'Filtro por estado del producto',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['ACTIVE', 'OUT_OF_STOCK', 'INACTIVE'])
+  status?: string;
   @ApiProperty({ required: false, default: 1 })
   @IsOptional()
   @Type(() => Number)

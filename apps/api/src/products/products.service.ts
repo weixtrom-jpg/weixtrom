@@ -65,7 +65,7 @@ export class ProductsService {
   async findAll(
     userId: string,
     role: Role,
-    query: { page?: number; limit?: number; search?: string; category?: string },
+    query: { page?: number; limit?: number; search?: string; category?: string; status?: string },
   ) {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? Math.min(query.limit, 100) : 20;
@@ -81,7 +81,10 @@ export class ProductsService {
       where.status = ProductStatus.ACTIVE;
     }
 
-    // Búsqueda por nombre (insensitive contains)
+    if (query.status && role === Role.SUPPLIER_ADMIN) {
+      where.status = query.status as ProductStatus;
+    }
+
     if (query.search) {
       where.name = { contains: query.search, mode: 'insensitive' };
     }

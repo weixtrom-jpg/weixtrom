@@ -51,8 +51,8 @@ export function SupplierDashboard() {
       try {
         const [productsRes, pendingRes, recentRes] = await Promise.allSettled([
           api.get<PaginatedProducts>('/products', { status: 'ACTIVE', limit: '1' }),
-          api.get<PaginatedQuotes>('/supplier-quotes', { status: 'PENDING', limit: '1' }),
-          api.get<PaginatedQuotes>('/supplier-quotes', { status: 'PENDING', limit: '3' }),
+          api.get<PaginatedQuotes>('/supplier-quotes/requests', { status: 'PENDING', limit: '1' }),
+          api.get<PaginatedQuotes>('/supplier-quotes/requests', { status: 'PENDING', limit: '3' }),
         ]);
 
         setKpis({
