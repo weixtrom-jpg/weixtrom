@@ -12,6 +12,8 @@ import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 
 // Role dashboards
 import { ClientDashboard } from '@/pages/client/ClientDashboard';
+import { ClientVehiclesPage } from '@/pages/client/ClientVehiclesPage';
+import { ClientVehicleNewPage } from '@/pages/client/ClientVehicleNewPage';
 import { WorkshopDashboard } from '@/pages/workshop/WorkshopDashboard';
 import { WorkshopRequestsPage } from '@/pages/workshop/WorkshopRequestsPage';
 import { WorkshopRequestDetailPage } from '@/pages/workshop/WorkshopRequestDetailPage';
@@ -25,6 +27,7 @@ import { SupplierQuotesPage } from '@/pages/supplier/SupplierQuotesPage';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
+import { NotificationsPage } from '@/pages/NotificationsPage';
 
 const ROLE_HOME: Record<string, string> = {
   CLIENT: '/client',
@@ -56,6 +59,9 @@ function App() {
           <Route path="/verify" element={<VerifyEmailPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="/notifications" element={
+            <PrivateRoute><NotificationsPage /></PrivateRoute>
+          } />
 
           {/* Redirect raíz según rol */}
           <Route path="/" element={<RoleRedirect />} />
@@ -63,6 +69,21 @@ function App() {
           {/* Cliente */}
           <Route path="/client" element={
             <PrivateRoute allowedRoles={['CLIENT']}><ClientDashboard /></PrivateRoute>
+          } />
+          <Route path="/client/vehicles" element={
+            <PrivateRoute allowedRoles={['CLIENT']}><ClientVehiclesPage /></PrivateRoute>
+          } />
+          <Route path="/client/vehicles/new" element={
+            <PrivateRoute allowedRoles={['CLIENT']}><ClientVehicleNewPage /></PrivateRoute>
+          } />
+          <Route path="/client/services" element={
+            <PrivateRoute allowedRoles={['CLIENT']}><Navigate to="/client" replace /></PrivateRoute>
+          } />
+          <Route path="/client/invoices" element={
+            <PrivateRoute allowedRoles={['CLIENT']}><Navigate to="/client" replace /></PrivateRoute>
+          } />
+          <Route path="/client/profile" element={
+            <PrivateRoute allowedRoles={['CLIENT']}><Navigate to="/client" replace /></PrivateRoute>
           } />
 
           {/* Admin Taller */}
