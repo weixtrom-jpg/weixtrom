@@ -27,7 +27,7 @@ export function TechnicianDashboard() {
       <Card>
         <h2 className="font-semibold text-text-primary mb-3">Ordenes asignadas</h2>
         <div className="text-center py-8 text-text-secondary text-sm">
-          No tienes ordenes asignadas en este momento.
+          El modulo de ordenes de trabajo estara disponible en el Sprint 6.
         </div>
       </Card>
     </DashboardLayout>
