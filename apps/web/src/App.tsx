@@ -14,6 +14,7 @@ import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { ClientDashboard } from '@/pages/client/ClientDashboard';
 import { ClientVehiclesPage } from '@/pages/client/ClientVehiclesPage';
 import { ClientVehicleNewPage } from '@/pages/client/ClientVehicleNewPage';
+import { ClientVehicleDetailPage } from '@/pages/client/ClientVehicleDetailPage';
 import { WorkshopDashboard } from '@/pages/workshop/WorkshopDashboard';
 import { WorkshopRequestsPage } from '@/pages/workshop/WorkshopRequestsPage';
 import { WorkshopRequestDetailPage } from '@/pages/workshop/WorkshopRequestDetailPage';
@@ -75,6 +76,9 @@ function App() {
           } />
           <Route path="/client/vehicles/new" element={
             <PrivateRoute allowedRoles={['CLIENT']}><ClientVehicleNewPage /></PrivateRoute>
+          } />
+          <Route path="/client/vehicles/:id" element={
+            <PrivateRoute allowedRoles={['CLIENT']}><ClientVehicleDetailPage /></PrivateRoute>
           } />
           <Route path="/client/services" element={
             <PrivateRoute allowedRoles={['CLIENT']}><Navigate to="/client" replace /></PrivateRoute>

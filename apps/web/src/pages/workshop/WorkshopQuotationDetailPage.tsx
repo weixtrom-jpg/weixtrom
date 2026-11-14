@@ -35,7 +35,7 @@ interface QuotationDetail {
   total: number;
   rejectionReason?: string;
   clientComment?: string;
-  vehicle: { brand: string; model: string; year: number; plate: string };
+  diagnosticRequest?: { vehicle: { brand: string; model: string; year: number; plate: string } };
   items: QuotationItem[];
   createdAt: string;
 }
@@ -241,12 +241,12 @@ export function WorkshopQuotationDetailPage() {
                 <div>
                   <p className="text-xs text-text-secondary mb-1">Vehiculo</p>
                   <p className="text-sm font-medium text-text-primary">
-                    {detail.vehicle.brand} {detail.vehicle.model} {detail.vehicle.year}
+                    {detail.diagnosticRequest?.vehicle?.brand} {detail.diagnosticRequest?.vehicle?.model} {detail.diagnosticRequest?.vehicle?.year}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-text-secondary mb-1">Placa</p>
-                  <p className="text-sm font-medium text-text-primary font-mono">{detail.vehicle.plate}</p>
+                  <p className="text-sm font-medium text-text-primary font-mono">{detail.diagnosticRequest?.vehicle?.plate}</p>
                 </div>
                 <div>
                   <p className="text-xs text-text-secondary mb-1">Fecha de creacion</p>

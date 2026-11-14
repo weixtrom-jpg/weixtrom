@@ -1,6 +1,10 @@
 import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { Role } from '@prisma/client';
+
+const stripHtml = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.replace(/<[^>]*>/g, '').trim() : value;
 
 const SELF_REGISTER_ROLES = [
   Role.CLIENT,
@@ -22,12 +26,14 @@ export class RegisterDto {
   password: string;
 
   @ApiProperty({ example: 'Carlos' })
+  @Transform(stripHtml)
   @IsString()
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   @MaxLength(100, { message: 'El nombre no puede exceder 100 caracteres' })
   firstName: string;
 
   @ApiProperty({ example: 'Gomez' })
+  @Transform(stripHtml)
   @IsString()
   @IsNotEmpty({ message: 'El apellido es obligatorio' })
   @MaxLength(100, { message: 'El apellido no puede exceder 100 caracteres' })
@@ -35,6 +41,7 @@ export class RegisterDto {
 
   @ApiProperty({ example: '3001234567', required: false })
   @IsOptional()
+  @Transform(stripHtml)
   @IsString()
   @MaxLength(20, { message: 'El teléfono no puede exceder 20 caracteres' })
   phone?: string;

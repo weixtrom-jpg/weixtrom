@@ -31,7 +31,7 @@ describe('VehiclesService', () => {
     const dto = { plate: 'ABC123', brand: 'Toyota', model: 'Corolla', year: 2022, color: 'Blanco' };
 
     it('debe crear un vehículo nuevo', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue(null);
+      prisma.vehicle.findFirst.mockResolvedValue(null);
       prisma.vehicle.create.mockResolvedValue({ id: 'v-1', ...dto, ownerId: userId });
 
       const result = await service.create(userId, dto);
@@ -48,15 +48,15 @@ describe('VehiclesService', () => {
       );
     });
 
-    it('debe rechazar placa duplicada del mismo usuario', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue({ id: 'existing', plate: 'ABC123' });
+    it('debe rechazar placa duplicada a nivel global', async () => {
+      prisma.vehicle.findFirst.mockResolvedValue({ id: 'existing', plate: 'ABC123' });
 
       await expect(service.create(userId, dto)).rejects.toThrow(ConflictException);
       expect(prisma.vehicle.create).not.toHaveBeenCalled();
     });
 
     it('debe manejar error P2002 de Prisma como conflicto', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue(null);
+      prisma.vehicle.findFirst.mockResolvedValue(null);
       const prismaError = new Prisma.PrismaClientKnownRequestError('Unique constraint', {
         code: 'P2002',
         clientVersion: '6.0.0',
