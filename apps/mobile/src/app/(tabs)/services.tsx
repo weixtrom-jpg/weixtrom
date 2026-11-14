@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  FlatList,
+  ScrollView,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +36,30 @@ interface DiagnosticsResponse {
   totalPages: number;
 }
 
+interface QuotationVehicle {
+  brand: string;
+  model: string;
+  year: number;
+  plate: string;
+}
+
+interface QuotationItem {
+  id: string;
+  description: string;
+  status: 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED';
+  total: number;
+  vehicle: QuotationVehicle;
+  createdAt: string;
+}
+
+interface QuotationsResponse {
+  data: QuotationItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // ---- Helpers ----
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
@@ -57,10 +81,17 @@ function formatDate(dateStr: string): string {
 
 // ---- Component ----
 
+const formatCOP = new Intl.NumberFormat('es-CO', {
+  style: 'currency',
+  currency: 'COP',
+  minimumFractionDigits: 0,
+});
+
 export default function ServicesTab() {
   const router = useRouter();
 
   const [activeDiagnostics, setActiveDiagnostics] = useState<DiagnosticItem[]>([]);
+  const [pendingQuotations, setPendingQuotations] = useState<QuotationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -72,12 +103,14 @@ export default function ServicesTab() {
         setIsLoading(true);
         setLoadError(false);
         try {
-          const [pending, taken] = await Promise.all([
+          const [pending, taken, quotations] = await Promise.all([
             api.get<DiagnosticsResponse>('/diagnostics?page=1&limit=3&status=PENDING'),
             api.get<DiagnosticsResponse>('/diagnostics?page=1&limit=3&status=TAKEN'),
+            api.get<QuotationsResponse>('/quotations?status=SENT&page=1&limit=3'),
           ]);
           if (!cancelled) {
             setActiveDiagnostics([...pending.data, ...taken.data]);
+            setPendingQuotations(quotations.data);
           }
         } catch {
           if (!cancelled) setLoadError(true);
@@ -120,52 +153,101 @@ export default function ServicesTab() {
     );
   }
 
-  // Has active diagnostics
-  if (activeDiagnostics.length > 0) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Solicitudes activas</Text>
-          <TouchableOpacity
-            style={styles.viewAllButton}
-            onPress={() => router.push('/diagnostics')}
-          >
-            <Text style={styles.viewAllText}>Ver todas</Text>
-            <Ionicons name="chevron-forward" size={16} color="#FF6B35" />
-          </TouchableOpacity>
-        </View>
+  const hasContent = activeDiagnostics.length > 0 || pendingQuotations.length > 0;
 
-        <FlatList
-          data={activeDiagnostics}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            const statusCfg = getStatusConfig(item.status);
-            return (
+  if (hasContent) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* Diagnostics section */}
+        {activeDiagnostics.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Solicitudes activas</Text>
               <TouchableOpacity
+                style={styles.viewAllButton}
+                onPress={() => router.push('/diagnostics')}
+              >
+                <Text style={styles.viewAllText}>Ver todas</Text>
+                <Ionicons name="chevron-forward" size={16} color="#FF6B35" />
+              </TouchableOpacity>
+            </View>
+
+            {activeDiagnostics.map((item) => {
+              const statusCfg = getStatusConfig(item.status);
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.card}
+                  activeOpacity={0.7}
+                  onPress={() => router.push(`/diagnostics/${item.id}`)}
+                >
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.vehicleLabel}>
+                      {item.vehicle.brand} {item.vehicle.model}
+                    </Text>
+                    <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
+                      <Text style={[styles.statusText, { color: statusCfg.color }]}>
+                        {statusCfg.label}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.descriptionText} numberOfLines={1}>
+                    {item.description}
+                  </Text>
+                  <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        )}
+
+        {/* Quotations section */}
+        {pendingQuotations.length > 0 ? (
+          <>
+            <View style={[styles.sectionHeader, activeDiagnostics.length > 0 && { marginTop: 16 }]}>
+              <Text style={styles.sectionTitle}>Cotizaciones pendientes</Text>
+              <TouchableOpacity
+                style={styles.viewAllButton}
+                onPress={() => router.push('/quotations')}
+              >
+                <Text style={styles.viewAllText}>Ver todas</Text>
+                <Ionicons name="chevron-forward" size={16} color="#FF6B35" />
+              </TouchableOpacity>
+            </View>
+
+            {pendingQuotations.map((item) => (
+              <TouchableOpacity
+                key={item.id}
                 style={styles.card}
                 activeOpacity={0.7}
-                onPress={() => router.push(`/diagnostics/${item.id}`)}
+                onPress={() => router.push(`/quotations/${item.id}`)}
               >
                 <View style={styles.cardHeader}>
                   <Text style={styles.vehicleLabel}>
                     {item.vehicle.brand} {item.vehicle.model}
                   </Text>
-                  <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
-                    <Text style={[styles.statusText, { color: statusCfg.color }]}>
-                      {statusCfg.label}
+                  <View style={[styles.statusBadge, { backgroundColor: '#DBEAFE' }]}>
+                    <Text style={[styles.statusText, { color: '#1D4ED8' }]}>
+                      Pendiente
                     </Text>
                   </View>
                 </View>
                 <Text style={styles.descriptionText} numberOfLines={1}>
-                  {item.description}
+                  {item.vehicle.plate}
                 </Text>
-                <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                <View style={styles.quotationFooter}>
+                  <Text style={styles.quotationTotal}>{formatCOP.format(item.total)}</Text>
+                  <Text style={styles.quotationHint}>Pendiente de aprobacion</Text>
+                </View>
               </TouchableOpacity>
-            );
-          }}
-        />
+            ))}
+          </>
+        ) : (
+          <View style={[styles.noQuotationsRow, activeDiagnostics.length > 0 && { marginTop: 16 }]}>
+            <Ionicons name="receipt-outline" size={18} color="#9CA3AF" />
+            <Text style={styles.noQuotationsText}>Sin cotizaciones pendientes.</Text>
+          </View>
+        )}
 
         <View style={styles.bottomAction}>
           <TouchableOpacity
@@ -175,11 +257,11 @@ export default function ServicesTab() {
             <Text style={styles.addButtonText}>Solicitar diagnostico</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
-  // No active diagnostics - empty state
+  // No active content - empty state
   return (
     <View style={styles.container}>
       <View style={styles.emptyContainer}>
@@ -206,7 +288,8 @@ export default function ServicesTab() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA', padding: 16 },
+  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  scrollContent: { padding: 16 },
   centered: {
     flex: 1,
     backgroundColor: '#F7F8FA',
@@ -230,9 +313,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   viewAllText: { fontSize: 14, fontWeight: '600', color: '#FF6B35' },
-
-  // List
-  listContent: { gap: 0 },
 
   // Card
   card: {
@@ -280,4 +360,21 @@ const styles = StyleSheet.create({
 
   historyLink: { marginTop: 16, paddingVertical: 8 },
   historyLinkText: { fontSize: 14, color: '#1F3864', fontWeight: '500' },
+
+  // Quotations
+  quotationFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  quotationTotal: { fontSize: 15, fontWeight: '700', color: '#1F3864' },
+  quotationHint: { fontSize: 12, color: '#1D4ED8', fontWeight: '500' },
+  noQuotationsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  noQuotationsText: { fontSize: 14, color: '#9CA3AF' },
 });
