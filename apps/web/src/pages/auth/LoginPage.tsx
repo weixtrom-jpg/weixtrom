@@ -68,14 +68,14 @@ export function LoginPage() {
         </form>
 
         <div className="mt-4 text-center text-sm">
-          <Link to="/forgot-password" className="text-brand-orange hover:underline">
+          <Link to="/forgot-password" className="text-brand-orange hover:underline inline-block py-2 min-h-[44px] leading-[44px]">
             Olvide mi contrasena
           </Link>
         </div>
 
         <div className="mt-6 text-center text-sm text-text-secondary">
           No tienes cuenta?{' '}
-          <Link to="/register" className="text-brand-orange hover:underline font-medium">
+          <Link to="/register" className="text-brand-orange hover:underline font-medium inline-block py-2 min-h-[44px] leading-[44px]">
             Registrate
           </Link>
         </div>

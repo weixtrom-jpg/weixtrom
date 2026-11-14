@@ -101,7 +101,7 @@ export function RegisterPage() {
 
         <div className="mt-4 text-center text-sm text-text-secondary">
           Ya tienes cuenta?{' '}
-          <Link to="/login" className="text-brand-orange hover:underline font-medium">
+          <Link to="/login" className="text-brand-orange hover:underline font-medium inline-block py-2 min-h-[44px] leading-[44px]">
             Iniciar sesion
           </Link>
         </div>
