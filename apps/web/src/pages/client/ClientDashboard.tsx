@@ -46,9 +46,9 @@ export function ClientDashboard() {
   }, []);
 
   const kpiItems = [
-    { label: 'Vehiculos registrados', value: kpis?.vehicles ?? 0, variant: 'info' as const },
-    { label: 'Alertas legales', value: kpis?.legalAlerts ?? 0, variant: 'warning' as const },
-    { label: 'Servicios activos', value: kpis?.activeServices ?? 0, variant: 'success' as const },
+    { label: 'Vehiculos registrados', value: kpis?.vehicles ?? 0, variant: 'info' as const, badge: 'Al dia' },
+    { label: 'Alertas legales', value: kpis?.legalAlerts ?? 0, variant: 'warning' as const, badge: 'Proximamente' },
+    { label: 'Servicios activos', value: kpis?.activeServices ?? 0, variant: 'success' as const, badge: 'Al dia' },
   ];
 
   return (
@@ -64,7 +64,7 @@ export function ClientDashboard() {
             ) : (
               <p className="text-2xl font-bold text-text-primary mt-1">{kpi.value}</p>
             )}
-            <Badge variant={kpi.variant} className="mt-2">Al dia</Badge>
+            <Badge variant={kpi.variant} className="mt-2">{kpi.badge}</Badge>
           </Card>
         ))}
       </div>

@@ -35,6 +35,7 @@ export function NotificationsPage() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [total, setTotal] = useState(0);
   const [unread, setUnread] = useState(0);
 
@@ -46,8 +47,8 @@ export function NotificationsPage() {
         setNotifications(res.data);
         setTotal(res.total);
         setUnread(res.unread);
-      } catch {
-        // silently fail
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar notificaciones');
       } finally {
         setLoading(false);
       }
@@ -62,8 +63,8 @@ export function NotificationsPage() {
         prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
       );
       setUnread((prev) => Math.max(0, prev - 1));
-    } catch {
-      // silently fail
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al actualizar');
     }
   }
 
@@ -99,6 +100,12 @@ export function NotificationsPage() {
             <Badge variant="warning">{unread} sin leer</Badge>
           )}
         </div>
+
+        {error && (
+          <Card>
+            <p className="text-sm text-red-600">{error}</p>
+          </Card>
+        )}
 
         <Card padding="none">
           {loading ? (
