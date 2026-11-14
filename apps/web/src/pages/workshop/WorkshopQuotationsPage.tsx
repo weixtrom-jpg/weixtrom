@@ -20,7 +20,7 @@ interface Quotation {
   shortId?: string;
   status: QuotationStatus;
   total: number;
-  vehicle: { brand: string; model: string; year: number; plate: string };
+  diagnosticRequest?: { vehicle: { brand: string; model: string; year: number; plate: string } };
   createdAt: string;
 }
 
@@ -152,10 +152,10 @@ export function WorkshopQuotationsPage() {
                           {q.shortId || q.id.slice(0, 8)}
                         </td>
                         <td className="px-4 py-3 text-text-primary font-medium">
-                          {q.vehicle.brand} {q.vehicle.model} {q.vehicle.year}
+                          {q.diagnosticRequest?.vehicle?.brand} {q.diagnosticRequest?.vehicle?.model} {q.diagnosticRequest?.vehicle?.year}
                         </td>
                         <td className="px-4 py-3 text-text-secondary font-mono text-xs">
-                          {q.vehicle.plate}
+                          {q.diagnosticRequest?.vehicle?.plate}
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant={badge.variant}>{badge.label}</Badge>
@@ -191,9 +191,9 @@ export function WorkshopQuotationsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium text-text-primary">
-                          {q.vehicle.brand} {q.vehicle.model} {q.vehicle.year}
+                          {q.diagnosticRequest?.vehicle?.brand} {q.diagnosticRequest?.vehicle?.model} {q.diagnosticRequest?.vehicle?.year}
                         </p>
-                        <p className="text-xs text-text-secondary font-mono">{q.vehicle.plate}</p>
+                        <p className="text-xs text-text-secondary font-mono">{q.diagnosticRequest?.vehicle?.plate}</p>
                       </div>
                       <Badge variant={badge.variant}>{badge.label}</Badge>
                     </div>

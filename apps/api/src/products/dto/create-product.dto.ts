@@ -20,6 +20,16 @@ export class CreateProductDto {
   name: string;
 
   @ApiProperty({
+    example: 'Filtro compatible con motores 1.6L y 2.0L',
+    description: 'Descripción del producto',
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: 'La descripción debe ser texto' })
+  @MaxLength(2000, { message: 'La descripción no puede exceder 2000 caracteres' })
+  description?: string;
+
+  @ApiProperty({
     example: 'Filtros',
     description: 'Categoría del producto',
     required: false,

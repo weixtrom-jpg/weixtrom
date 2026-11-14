@@ -87,7 +87,7 @@ export function SupplierQuotesPage() {
       const params: Record<string, string> = { page: String(page), limit: '10' };
       if (statusFilter) params.status = statusFilter;
 
-      const res = await api.get<PaginatedResponse>('/supplier-quotes', params);
+      const res = await api.get<PaginatedResponse>('/supplier-quotes/requests', params);
       setQuotes(res.data);
       setTotalPages(res.totalPages);
     } catch (err) {
@@ -143,7 +143,7 @@ export function SupplierQuotesPage() {
         body.notes = respondForm.notes.trim();
       }
 
-      await api.post(`/supplier-quotes/${respondQuote.requestId}/respond`, body);
+      await api.post(`/supplier-quotes/requests/${respondQuote.requestId}/respond`, body);
       closeRespondModal();
       fetchQuotes();
     } catch (err) {

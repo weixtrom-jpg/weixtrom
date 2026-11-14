@@ -79,9 +79,7 @@ export function WorkshopQuotationNewPage() {
     setSubmitError('');
     try {
       const res = await api.post<CreatedQuotation>('/quotations', {
-        vehicleId: selected.vehicle.id,
         diagnosticRequestId: selected.id,
-        description: description.trim(),
       });
       navigate(`/workshop/quotations/${res.id}`);
     } catch (err) {
